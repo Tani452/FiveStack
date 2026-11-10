@@ -1,16 +1,86 @@
 <?php
 /**
  * ClubHub - Events Directory Page
- * Phase 3: Instant client-side search and category filtering.
+ * Phase 6: Dynamic campus events directory loaded from MySQL via PDO prepared statements.
+ * Supports server-side search and category filtering (works without JS),
+ * instant client-side filtering via data-attributes, and role-based action controls.
  */
+
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+$user = current_user();
+$is_admin = has_role('admin');
+$is_club_head = has_role('club_head');
+
+$search = trim($_GET['event_search'] ?? '');
+$category = trim($_GET['event_category'] ?? '');
+
+// Fetch distinct club categories for the dropdown filter
+try {
+    $cat_stmt = $pdo->query('SELECT DISTINCT category FROM clubs WHERE category IS NOT NULL AND category != "" ORDER BY category ASC');
+    $categories = $cat_stmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (PDOException $e) {
+    log_error('Failed to load categories for events: ' . $e->getMessage());
+    $categories = ['Technical', 'Cultural', 'Literary', 'Sports', 'Media'];
+}
+
+// Build query
+$sql = 'SELECT e.*, c.name AS club_name, c.category AS club_category, c.head_id AS club_head_id,
+               v.name AS venue_name, v.location AS venue_location, v.capacity AS venue_capacity,
+               u.name AS creator_name
+        FROM events e
+        JOIN clubs c ON e.club_id = c.id
+        LEFT JOIN venues v ON e.venue_id = v.id
+        LEFT JOIN users u ON e.created_by = u.id
+        WHERE 1=1';
+$params = [];
+
+// Regular visitors only see approved events; admin and club heads can view all to manage them
+if (!$is_admin && !$is_club_head) {
+    $sql .= " AND e.status = 'approved'";
+}
+
+// Search keyword filter (title, description, club name, venue name)
+if ($search !== '') {
+    $sql .= ' AND (e.title LIKE ? OR e.description LIKE ? OR c.name LIKE ? OR v.name LIKE ?)';
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
+}
+
+// Category filter
+if ($category !== '') {
+    $sql .= ' AND LOWER(c.category) = LOWER(?)';
+    $params[] = $category;
+}
+
+$sql .= ' ORDER BY e.event_date ASC, e.start_time ASC';
+
+try {
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $events = $stmt->fetchAll();
+} catch (PDOException $e) {
+    log_error('Failed to fetch events: ' . $e->getMessage());
+    $events = [];
+}
 
 $page_title = 'Campus Events';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="page-header">
-    <h1>Upcoming College Events</h1>
-    <p>Browse schedule, venue information, and registration details for all sanctioned club events and campus workshops.</p>
+    <div class="action-bar">
+        <div>
+            <h1>Upcoming College Events</h1>
+            <p>Browse schedule, venue information, and registration details for all sanctioned club events and campus workshops.</p>
+        </div>
+        <?php if ($is_admin || $is_club_head): ?>
+            <a href="event-form.php" class="btn btn-primary">+ Create New Event</a>
+        <?php endif; ?>
+    </div>
 </section>
 
 <section class="filter-section">
@@ -18,118 +88,104 @@ require_once __DIR__ . '/../includes/header.php';
     <form class="filter-form" action="events.php" method="GET">
         <p class="form-group">
             <label class="form-label" for="event_search">Search Event:</label>
-            <input class="form-control" type="text" id="event_search" name="event_search" placeholder="Type event name or keyword...">
+            <input class="form-control" type="text" id="event_search" name="event_search" value="<?php echo e($search); ?>" placeholder="Type event name or keyword...">
         </p>
         <p class="form-group">
             <label class="form-label" for="event_category">Category:</label>
             <select class="form-control" id="event_category" name="event_category">
                 <option value="">All Categories</option>
-                <option value="technical">Technical</option>
-                <option value="cultural">Cultural</option>
-                <option value="literary">Literary</option>
-                <option value="sports">Sports</option>
-                <option value="media">Media & Creative</option>
+                <?php foreach ($categories as $cat): ?>
+                    <option value="<?php echo e($cat); ?>" <?php echo strcasecmp($category, $cat) === 0 ? 'selected' : ''; ?>>
+                        <?php echo e($cat); ?>
+                    </option>
+                <?php endforeach; ?>
             </select>
         </p>
         <p class="form-actions">
             <button type="submit" class="btn btn-primary">Filter Schedule</button>
-            <button type="reset" class="btn btn-secondary">Clear</button>
+            <a href="events.php" class="btn btn-secondary">Clear</a>
         </p>
     </form>
 </section>
 
 <section class="events-grid card-grid">
-    <h2>Scheduled Events</h2>
+    <h2>Scheduled Events (<?php echo count($events); ?> found)</h2>
 
-    <!-- Sample Event 1 -->
-    <article class="card event-card" data-category="technical">
-        <h3>HackStart 2026: 24-Hour Code Sprint</h3>
-        <p><strong>Organized By:</strong> Coding Club</p>
-        <p><strong>Category:</strong> Technical</p>
-        <p>
-            <strong>Date:</strong> <time datetime="2026-11-20">November 20, 2026</time> | 
-            <strong>Time:</strong> 09:00 AM - 09:00 PM
-        </p>
-        <p><strong>Venue:</strong> Computer Lab 3 (Capacity: 60)</p>
-        <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
-        <p>Annual inter-department hackathon challenging teams to develop innovative open source solutions for campus problems.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Register Team</a></p>
-    </article>
+    <?php if (empty($events)): ?>
+        <div class="card no-events-notice">
+            <h3>No Matching Events Found</h3>
+            <p>Try searching with a different keyword, date, or selecting "All Categories".</p>
+            <p><a href="events.php" class="btn btn-outline">View All Events</a></p>
+        </div>
+    <?php else: ?>
+        <?php foreach ($events as $evt): ?>
+            <?php
+            $evt_date = date('F j, Y', strtotime($evt['event_date']));
+            $evt_start = date('h:i A', strtotime($evt['start_time']));
+            $evt_end = date('h:i A', strtotime($evt['end_time']));
+            $can_edit = $is_admin || ($user && ((int)$evt['created_by'] === (int)$user['id'] || (int)$evt['club_head_id'] === (int)$user['id']));
+            ?>
+            <article class="card event-card" data-category="<?php echo e(strtolower($evt['club_category'])); ?>">
+                <div class="action-bar" style="margin-bottom: var(--space-xs);">
+                    <h3>
+                        <a href="event-detail.php?id=<?php echo (int)$evt['id']; ?>" style="color: var(--primary); text-decoration: none;">
+                            <?php echo e($evt['title']); ?>
+                        </a>
+                    </h3>
+                    <span class="badge badge-primary"><?php echo e($evt['club_category']); ?></span>
+                </div>
 
-    <!-- Sample Event 2 -->
-    <article class="card event-card" data-category="literary">
-        <h3>National Youth Parliamentary Debate</h3>
-        <p><strong>Organized By:</strong> Literary & Debating Society</p>
-        <p><strong>Category:</strong> Literary</p>
-        <p>
-            <strong>Date:</strong> <time datetime="2026-11-24">November 24, 2026</time> | 
-            <strong>Time:</strong> 10:00 AM - 04:00 PM
-        </p>
-        <p><strong>Venue:</strong> Seminar Hall 1 (Capacity: 120)</p>
-        <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
-        <p>Three rounds of British Parliamentary debate on contemporary economic policy, artificial intelligence ethics, and global trade.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Register as Speaker/Audience</a></p>
-    </article>
+                <p><strong>Organized By:</strong> <?php echo e($evt['club_name']); ?></p>
 
-    <!-- Sample Event 3 -->
-    <article class="card event-card" data-category="cultural">
-        <h3>Acoustic Under the Stars: Live Music Fest</h3>
-        <p><strong>Organized By:</strong> Cultural & Arts Society</p>
-        <p><strong>Category:</strong> Cultural</p>
-        <p>
-            <strong>Date:</strong> <time datetime="2026-11-28">November 28, 2026</time> | 
-            <strong>Time:</strong> 05:30 PM - 08:30 PM
-        </p>
-        <p><strong>Venue:</strong> Open Air Theatre (Capacity: 800)</p>
-        <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
-        <p>An open-air musical evening featuring acoustic sets from student guitarists, vocal ensembles, and percussionists.</p>
-        <p><a href="login.php" class="btn-outline">Log in for Event Pass</a></p>
-    </article>
+                <p>
+                    <strong>Date:</strong>
+                    <time datetime="<?php echo e($evt['event_date']); ?>"><?php echo e($evt_date); ?></time> |
+                    <strong>Time:</strong> <?php echo e($evt_start); ?> - <?php echo e($evt_end); ?>
+                </p>
 
-    <!-- Sample Event 4 -->
-    <article class="card event-card" data-category="technical">
-        <h3>Autonomous Drone Building Bootcamp</h3>
-        <p><strong>Organized By:</strong> Robotics & IoT Society</p>
-        <p><strong>Category:</strong> Technical</p>
-        <p>
-            <strong>Date:</strong> <time datetime="2026-12-02">December 2, 2026</time> | 
-            <strong>Time:</strong> 01:00 PM - 05:00 PM
-        </p>
-        <p><strong>Venue:</strong> Electronics Hardware Lab (Capacity: 45)</p>
-        <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
-        <p>A hands-on workshop covering flight controllers, ESC calibration, brushless motors, and radio transmitter programming.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Reserve Kit</a></p>
-    </article>
+                <p>
+                    <strong>Venue:</strong>
+                    <?php if (!empty($evt['venue_name'])): ?>
+                        <?php echo e($evt['venue_name']); ?>
+                        <?php if (!empty($evt['venue_capacity'])): ?>
+                            (Capacity: <?php echo (int)$evt['venue_capacity']; ?>)
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <em style="color: var(--text-muted);">To Be Announced</em>
+                    <?php endif; ?>
+                </p>
 
-    <!-- Sample Event 5 -->
-    <article class="card event-card" data-category="sports">
-        <h3>Inter-Department Football Championship</h3>
-        <p><strong>Organized By:</strong> Sports & Athletics Club</p>
-        <p><strong>Category:</strong> Sports</p>
-        <p>
-            <strong>Date:</strong> <time datetime="2026-12-08">December 8, 2026</time> | 
-            <strong>Time:</strong> 03:30 PM - 06:30 PM
-        </p>
-        <p><strong>Venue:</strong> Main Sports Ground (Capacity: 500)</p>
-        <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
-        <p>Quarter-final knockout rounds between the Computer Science, Mechanical, and Electronics departmental squads.</p>
-        <p><a href="login.php" class="btn-outline">Log in for Match Fixtures</a></p>
-    </article>
+                <p>
+                    <strong>Status:</strong>
+                    <span class="badge badge-<?php echo e($evt['status']); ?>">
+                        <?php echo e(ucfirst($evt['status'])); ?>
+                    </span>
+                    <?php if ($evt['status'] === 'approved'): ?>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">(Sanctioned by Coordinator)</span>
+                    <?php endif; ?>
+                </p>
 
-    <!-- Sample Event 6 -->
-    <article class="card event-card" data-category="media">
-        <h3>Campus Lens: Annual Photography Exhibition</h3>
-        <p><strong>Organized By:</strong> Photography & Media Club</p>
-        <p><strong>Category:</strong> Media & Creative</p>
-        <p>
-            <strong>Date:</strong> <time datetime="2026-12-12">December 12, 2026</time> | 
-            <strong>Time:</strong> 11:00 AM - 05:00 PM
-        </p>
-        <p><strong>Venue:</strong> Main Auditorium Foyer (Capacity: 200)</p>
-        <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
-        <p>Showcase of student fine-art photographs, architectural street photography, and macro nature prints with visitor voting.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Submit Photo Entry</a></p>
-    </article>
+                <p><?php echo nl2br(e(mb_strimwidth($evt['description'] ?? '', 0, 150, '...'))); ?></p>
+
+                <div class="card-actions">
+                    <a href="event-detail.php?id=<?php echo (int)$evt['id']; ?>" class="btn btn-sm btn-outline">View Details</a>
+
+                    <?php if ($can_edit): ?>
+                        <a href="event-form.php?id=<?php echo (int)$evt['id']; ?>" class="btn btn-sm btn-outline">Edit</a>
+                    <?php endif; ?>
+
+                    <?php if ($is_admin || $can_edit): ?>
+                        <form action="event-form.php" method="POST" style="display:inline; margin:0; padding:0; border:none; box-shadow:none; background:transparent;" onsubmit="return confirm('Are you sure you want to cancel/delete this event?');">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="id" value="<?php echo (int)$evt['id']; ?>">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </article>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </section>
 
 <?php

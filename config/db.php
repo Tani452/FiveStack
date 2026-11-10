@@ -11,7 +11,7 @@ $db_host = 'localhost';
 $db_port = '3306';
 $db_name = 'clubhub';
 $db_user = 'root';
-$db_pass = 'wrongpassword123'; // Default XAMPP MySQL password is empty
+$db_pass = ''; // Default XAMPP MySQL password is empty
 
 $dsn = "mysql:host={$db_host};port={$db_port};dbname={$db_name};charset=utf8mb4";
 

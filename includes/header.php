@@ -55,13 +55,33 @@ $current_page = basename($_SERVER['PHP_SELF'] ?? '');
         <ul class="navbar-nav">
             <li class="nav-item"><a href="<?php echo e($base_url); ?>index.php" class="nav-link <?php echo $current_page === 'index.php' ? 'active' : ''; ?>">Home</a></li>
             <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/clubs.php" class="nav-link <?php echo $current_page === 'clubs.php' ? 'active' : ''; ?>">Clubs</a></li>
-            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/events.php" class="nav-link <?php echo $current_page === 'events.php' ? 'active' : ''; ?>">Events</a></li>
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/events.php" class="nav-link <?php echo $current_page === 'events.php' || $current_page === 'event-detail.php' ? 'active' : ''; ?>">Events</a></li>
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/venues.php" class="nav-link <?php echo $current_page === 'venues.php' ? 'active' : ''; ?>">Venues</a></li>
             <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/about.php" class="nav-link <?php echo $current_page === 'about.php' ? 'active' : ''; ?>">About</a></li>
             <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/contact.php" class="nav-link <?php echo $current_page === 'contact.php' ? 'active' : ''; ?>">Contact</a></li>
-            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/login.php" class="nav-link <?php echo $current_page === 'login.php' ? 'active' : ''; ?>">Login</a></li>
-            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/register.php" class="nav-link <?php echo $current_page === 'register.php' ? 'active' : ''; ?>">Register</a></li>
+            <?php if (is_logged_in()): ?>
+                <?php $user = current_user(); ?>
+                <li class="nav-item nav-user-info">
+                    <span class="badge badge-role badge-<?php echo e($user['role']); ?>">
+                        <?php echo e($user['name']); ?> (<?php echo e($user['role']); ?>)
+                    </span>
+                </li>
+                <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/logout.php" class="nav-link">Logout</a></li>
+            <?php else: ?>
+                <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/login.php" class="nav-link <?php echo $current_page === 'login.php' ? 'active' : ''; ?>">Login</a></li>
+                <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/register.php" class="nav-link <?php echo $current_page === 'register.php' ? 'active' : ''; ?>">Register</a></li>
+            <?php endif; ?>
         </ul>
     </nav>
 </header>
 
 <main class="site-main">
+<?php
+// Render flash message if set
+$flash = get_flash();
+if ($flash):
+?>
+    <aside class="flash-alert flash-<?php echo e($flash['type']); ?>" role="alert">
+        <p><?php echo e($flash['message']); ?></p>
+    </aside>
+<?php endif; ?>

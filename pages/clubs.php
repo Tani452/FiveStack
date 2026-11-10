@@ -1,111 +1,174 @@
 <?php
 /**
  * ClubHub - Clubs Directory Page
- * Phase 2: Styled with design system, filter form, and club cards grid.
+ * Phase 6: Dynamic clubs catalog loaded from MySQL database via PDO prepared statements.
+ * Supports server-side search and category filtering (works without JS),
+ * active member counters, and role-based action controls for Admin and Club Heads.
  */
+
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+$search = trim($_GET['search'] ?? '');
+$category = trim($_GET['category'] ?? '');
+
+// Fetch distinct categories from database for dropdown filter
+try {
+    $cat_stmt = $pdo->query('SELECT DISTINCT category FROM clubs WHERE category IS NOT NULL AND category != "" ORDER BY category ASC');
+    $categories = $cat_stmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (PDOException $e) {
+    log_error('Failed to load club categories: ' . $e->getMessage());
+    $categories = ['Technical', 'Cultural', 'Literary', 'Sports', 'Media'];
+}
+
+// Build dynamic PDO query with prepared statements
+$sql = 'SELECT c.*, u.name AS head_name, u.email AS head_email,
+               (SELECT COUNT(*) FROM club_members cm WHERE cm.club_id = c.id AND cm.status = "approved") AS member_count
+        FROM clubs c
+        LEFT JOIN users u ON c.head_id = u.id
+        WHERE 1=1';
+$params = [];
+
+// Filter by search keyword (name or description)
+if ($search !== '') {
+    $sql .= ' AND (c.name LIKE ? OR c.description LIKE ?)';
+    $params[] = '%' . $search . '%';
+    $params[] = '%' . $search . '%';
+}
+
+// Filter by category
+if ($category !== '') {
+    $sql .= ' AND LOWER(c.category) = LOWER(?)';
+    $params[] = $category;
+}
+
+$sql .= ' ORDER BY c.name ASC';
+
+try {
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $clubs = $stmt->fetchAll();
+} catch (PDOException $e) {
+    log_error('Failed to fetch clubs from database: ' . $e->getMessage());
+    $clubs = [];
+}
+
+$user = current_user();
+$is_admin = has_role('admin');
 
 $page_title = 'Clubs Directory';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="page-header">
-    <h1>College Clubs Directory</h1>
-    <p>Discover student organizations, technical societies, cultural clubs, and sports teams across the campus.</p>
+    <div class="action-bar">
+        <div>
+            <h1>College Clubs Directory</h1>
+            <p>Discover student organizations, technical societies, cultural clubs, and sports teams across the campus.</p>
+        </div>
+        <?php if ($is_admin): ?>
+            <a href="club-form.php" class="btn btn-primary">+ Create New Club</a>
+        <?php endif; ?>
+    </div>
 </section>
 
 <section class="filter-section">
     <h2>Filter Clubs</h2>
     <form class="filter-form" action="clubs.php" method="GET">
         <p class="form-group">
-            <label class="form-label" for="search">Search Club Name:</label>
-            <input class="form-control" type="text" id="search" name="search" placeholder="e.g. Coding, Robotics, Drama">
+            <label class="form-label" for="search">Search Club Name or Description:</label>
+            <input class="form-control" type="text" id="search" name="search" value="<?php echo e($search); ?>" placeholder="e.g. Coding, Robotics, Debate">
         </p>
         <p class="form-group">
             <label class="form-label" for="category">Category:</label>
             <select class="form-control" id="category" name="category">
                 <option value="">All Categories</option>
-                <option value="technical">Technical</option>
-                <option value="cultural">Cultural</option>
-                <option value="literary">Literary</option>
-                <option value="sports">Sports</option>
-                <option value="media">Media & Creative</option>
+                <?php foreach ($categories as $cat): ?>
+                    <option value="<?php echo e($cat); ?>" <?php echo strcasecmp($category, $cat) === 0 ? 'selected' : ''; ?>>
+                        <?php echo e($cat); ?>
+                    </option>
+                <?php endforeach; ?>
             </select>
         </p>
         <p class="form-actions">
             <button type="submit" class="btn btn-primary">Filter Directory</button>
-            <button type="reset" class="btn btn-secondary">Reset</button>
+            <a href="clubs.php" class="btn btn-secondary">Reset</a>
         </p>
     </form>
 </section>
 
 <section class="clubs-grid card-grid">
-    <h2>Active Student Clubs</h2>
+    <h2>Active Student Clubs (<?php echo count($clubs); ?> found)</h2>
 
-    <!-- Sample Club Card 1 -->
-    <article class="card club-card">
-        <h3>Coding Club</h3>
-        <p><strong>Category:</strong> Technical</p>
-        <p><strong>Club Head:</strong> Alex Turner (Computer Science)</p>
-        <p><strong>Faculty Advisor:</strong> Dr. Sarah Jenkins</p>
-        <p><strong>Active Members:</strong> 85 Students</p>
-        <p>Focuses on competitive programming, open source software contributions, algorithms, and full-stack web development hackathons.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Apply for Membership</a></p>
-    </article>
+    <?php if (empty($clubs)): ?>
+        <div class="card no-events-notice">
+            <h3>No Clubs Found</h3>
+            <p>No student clubs matched your search criteria. Try selecting "All Categories" or clearing the search text.</p>
+            <p><a href="clubs.php" class="btn btn-outline">View All Clubs</a></p>
+        </div>
+    <?php else: ?>
+        <?php foreach ($clubs as $club): ?>
+            <?php
+            $is_my_club = ($user && $club['head_id'] && (int)$user['id'] === (int)$club['head_id']);
+            $can_manage_club = $is_admin || $is_my_club;
+            ?>
+            <article class="card club-card" data-category="<?php echo e(strtolower($club['category'])); ?>">
+                <div class="action-bar" style="margin-bottom: var(--space-xs);">
+                    <h3><?php echo e($club['name']); ?></h3>
+                    <span class="badge badge-primary"><?php echo e($club['category']); ?></span>
+                </div>
 
-    <!-- Sample Club Card 2 -->
-    <article class="card club-card">
-        <h3>Robotics & IoT Society</h3>
-        <p><strong>Category:</strong> Technical</p>
-        <p><strong>Club Head:</strong> Maya Patel (Electronics)</p>
-        <p><strong>Faculty Advisor:</strong> Prof. Alan Davis</p>
-        <p><strong>Active Members:</strong> 62 Students</p>
-        <p>Hands-on engineering society dedicated to designing autonomous mobile robots, microcontrollers, drone technologies, and IoT prototypes.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Apply for Membership</a></p>
-    </article>
+                <p>
+                    <strong>Status:</strong>
+                    <span class="badge badge-<?php echo $club['status'] === 'active' ? 'success' : 'danger'; ?>">
+                        <?php echo e(ucfirst($club['status'])); ?>
+                    </span>
+                </p>
 
-    <!-- Sample Club Card 3 -->
-    <article class="card club-card">
-        <h3>Cultural & Arts Society</h3>
-        <p><strong>Category:</strong> Cultural</p>
-        <p><strong>Club Head:</strong> Rohan Verma (Mechanical)</p>
-        <p><strong>Faculty Advisor:</strong> Dr. Emily Watson</p>
-        <p><strong>Active Members:</strong> 110 Students</p>
-        <p>Brings together campus talents in vocal and instrumental music, street theatre, fine art exhibitions, and classical dance.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Apply for Membership</a></p>
-    </article>
+                <p>
+                    <strong>Club Head:</strong>
+                    <?php if (!empty($club['head_name'])): ?>
+                        <?php echo e($club['head_name']); ?>
+                        <?php if ($is_my_club): ?>
+                            <span class="badge badge-role badge-club_head">(You)</span>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <em style="color: var(--text-muted);">Not Assigned</em>
+                    <?php endif; ?>
+                </p>
 
-    <!-- Sample Club Card 4 -->
-    <article class="card club-card">
-        <h3>Literary & Debating Society</h3>
-        <p><strong>Category:</strong> Literary</p>
-        <p><strong>Club Head:</strong> Jessica Taylor (Civil)</p>
-        <p><strong>Faculty Advisor:</strong> Prof. Michael Green</p>
-        <p><strong>Active Members:</strong> 48 Students</p>
-        <p>Conducts parliamentary debate tournaments, elocution competitions, creative writing workshops, and the annual college quiz league.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Apply for Membership</a></p>
-    </article>
+                <p>
+                    <strong>Registered Members:</strong>
+                    <?php echo (int)$club['member_count']; ?> Student<?php echo (int)$club['member_count'] === 1 ? '' : 's'; ?>
+                </p>
 
-    <!-- Sample Club Card 5 -->
-    <article class="card club-card">
-        <h3>Sports & Athletics Club</h3>
-        <p><strong>Category:</strong> Sports</p>
-        <p><strong>Club Head:</strong> David Kim (Management)</p>
-        <p><strong>Faculty Advisor:</strong> Coach Brian Miller</p>
-        <p><strong>Active Members:</strong> 130 Students</p>
-        <p>Coordinates collegiate leagues in football, basketball, cricket, and athletics, promoting physical fitness and team sportsmanship.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Apply for Membership</a></p>
-    </article>
+                <p><?php echo nl2br(e($club['description'])); ?></p>
 
-    <!-- Sample Club Card 6 -->
-    <article class="card club-card">
-        <h3>Photography & Media Club</h3>
-        <p><strong>Category:</strong> Media & Creative</p>
-        <p><strong>Club Head:</strong> Chloe Bennett (Electrical)</p>
-        <p><strong>Faculty Advisor:</strong> Dr. Emily Watson</p>
-        <p><strong>Active Members:</strong> 55 Students</p>
-        <p>Covers college events through digital photography, video journalism, post-production workshops, and campus documentary projects.</p>
-        <p><a href="login.php" class="btn-outline">Log in to Apply for Membership</a></p>
-    </article>
+                <div class="card-actions">
+                    <?php if ($can_manage_club): ?>
+                        <a href="club-form.php?id=<?php echo (int)$club['id']; ?>" class="btn btn-sm btn-outline">Edit Club</a>
+                    <?php endif; ?>
+
+                    <?php if ($is_admin): ?>
+                        <form action="club-form.php" method="POST" style="display:inline; margin:0; padding:0; border:none; box-shadow:none; background:transparent;" onsubmit="return confirm('Are you sure you want to delete this club? All associated events and memberships will also be affected.');">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="id" value="<?php echo (int)$club['id']; ?>">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    <?php endif; ?>
+
+                    <?php if (!$can_manage_club): ?>
+                        <?php if (is_logged_in()): ?>
+                            <span class="badge badge-secondary">Member Application Open</span>
+                        <?php else: ?>
+                            <a href="login.php" class="btn-outline">Log in to Apply for Membership</a>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </article>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </section>
 
 <?php
