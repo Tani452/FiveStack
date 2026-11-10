@@ -9,9 +9,9 @@
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-// If already logged in, redirect to clubs directory
+// If already logged in, redirect to dashboard
 if (is_logged_in()) {
-    redirect('clubs.php');
+    redirect('dashboard.php');
 }
 
 $error = '';
@@ -54,8 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 set_flash('success', 'Welcome back, ' . $user['name'] . ' (' . ucfirst($user['role']) . ')!');
                 
-                // Redirect to return page or clubs
-                $redirect_to = $_GET['redirect'] ?? 'clubs.php';
+                // Redirect to saved return page, query redirect, or role dashboard
+                $redirect_to = $_SESSION['redirect_after_login'] ?? $_GET['redirect'] ?? 'dashboard.php';
+                unset($_SESSION['redirect_after_login']);
                 redirect($redirect_to);
             } else {
                 $error = 'Invalid email address or password. Please verify your credentials.';
@@ -94,13 +95,6 @@ require_once __DIR__ . '/../includes/header.php';
         <p class="form-group">
             <label class="form-label" for="password">Password:</label>
             <input class="form-control" type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
-        </p>
-
-        <p class="form-group form-checkbox">
-            <label for="remember" class="checkbox-label">
-                <input type="checkbox" id="remember" name="remember" value="1">
-                <span>Keep me signed in on this computer</span>
-            </label>
         </p>
 
         <p class="form-actions">

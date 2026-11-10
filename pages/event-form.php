@@ -8,9 +8,9 @@
  */
 
 require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/auth.php';
 
-// Requires logged-in Admin or Club Head
+// Protect page: strictly requires logged-in Admin or Club Head
 require_role(['admin', 'club_head']);
 
 $user = current_user();

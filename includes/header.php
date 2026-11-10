@@ -61,6 +61,7 @@ $current_page = basename($_SERVER['PHP_SELF'] ?? '');
             <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/contact.php" class="nav-link <?php echo $current_page === 'contact.php' ? 'active' : ''; ?>">Contact</a></li>
             <?php if (is_logged_in()): ?>
                 <?php $user = current_user(); ?>
+                <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/dashboard.php" class="nav-link <?php echo $current_page === 'dashboard.php' ? 'active' : ''; ?>">Dashboard</a></li>
                 <li class="nav-item nav-user-info">
                     <span class="badge badge-role badge-<?php echo e($user['role']); ?>">
                         <?php echo e($user['name']); ?> (<?php echo e($user['role']); ?>)
