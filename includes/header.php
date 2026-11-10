@@ -28,6 +28,8 @@ $current_page = basename($_SERVER['PHP_SELF'] ?? '');
     <meta name="description" content="ClubHub - College Clubs Operations Hub for student clubs, campus venues, and event coordination.">
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?php echo e($base_url); ?>assets/images/favicon.png">
+    <!-- CSRF Token for AJAX Requests -->
+    <meta name="csrf-token" content="<?php echo e(generate_csrf_token()); ?>">
     <!-- Linked stylesheet -->
     <link rel="stylesheet" href="<?php echo e($base_url); ?>assets/css/style.css">
 </head>

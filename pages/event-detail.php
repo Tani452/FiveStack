@@ -29,9 +29,25 @@ try {
     ');
     $stmt->execute([$id]);
     $event = $stmt->fetch();
+
+    $user = current_user();
+
+    // Fetch confirmed RSVP count and check if current user is RSVPed
+    $rsvp_stmt = $pdo->prepare('SELECT COUNT(*) FROM rsvps WHERE event_id = ? AND status = "attending"');
+    $rsvp_stmt->execute([$id]);
+    $rsvp_count = (int)$rsvp_stmt->fetchColumn();
+
+    $user_rsvped = false;
+    if ($user) {
+        $user_rsvp_stmt = $pdo->prepare('SELECT 1 FROM rsvps WHERE event_id = ? AND user_id = ? AND status = "attending" LIMIT 1');
+        $user_rsvp_stmt->execute([$id, $user['id']]);
+        $user_rsvped = (bool)$user_rsvp_stmt->fetchColumn();
+    }
 } catch (PDOException $e) {
     log_error('Failed to load event details: ' . $e->getMessage());
     $event = null;
+    $rsvp_count = 0;
+    $user_rsvped = false;
 }
 
 if (!$event) {
@@ -115,6 +131,15 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="detail-meta-item">
+            <span class="detail-meta-label">Confirmed Attendance</span>
+            <span class="detail-meta-value">
+                <span id="detailRsvpCount" class="rsvp-counter" data-event-id="<?php echo (int)$event['id']; ?>">
+                    <?php echo $rsvp_count; ?> Registered Attendee<?php echo $rsvp_count === 1 ? '' : 's'; ?>
+                </span>
+            </span>
+        </div>
+
+        <div class="detail-meta-item">
             <span class="detail-meta-label">Event Coordinator</span>
             <span class="detail-meta-value">
                 <?php echo e($event['creator_name'] ?? 'Faculty Coordinator'); ?>
@@ -153,10 +178,14 @@ require_once __DIR__ . '/../includes/header.php';
             </form>
         <?php endif; ?>
 
-        <?php if (is_logged_in()): ?>
-            <span class="badge badge-success" style="padding: 0.6rem 1rem; font-size: 0.85rem;">Registered for Student Attendance</span>
-        <?php else: ?>
-            <a href="login.php" class="btn btn-outline">Log in to Register for this Event</a>
+        <?php if (is_logged_in() && $event['status'] === 'approved'): ?>
+            <button type="button" 
+                    class="btn <?php echo $user_rsvped ? 'btn-success' : 'btn-outline'; ?> btn-rsvp" 
+                    data-event-id="<?php echo (int)$event['id']; ?>">
+                <?php echo $user_rsvped ? 'Attending ✓ (Cancel)' : 'RSVP / Attend'; ?>
+            </button>
+        <?php elseif (!is_logged_in()): ?>
+            <a href="login.php?redirect=<?php echo urlencode('event-detail.php?id=' . (int)$event['id']); ?>" class="btn btn-outline">Log in to RSVP</a>
         <?php endif; ?>
     </div>
 </article>

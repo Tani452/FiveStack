@@ -25,16 +25,20 @@ try {
     $categories = ['Technical', 'Cultural', 'Literary', 'Sports', 'Media'];
 }
 
+$current_user_id = is_logged_in() ? (int)$user['id'] : 0;
+
 // Build query
 $sql = 'SELECT e.*, c.name AS club_name, c.category AS club_category, c.head_id AS club_head_id,
                v.name AS venue_name, v.location AS venue_location, v.capacity AS venue_capacity,
-               u.name AS creator_name
+               u.name AS creator_name,
+               (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id AND r.status = "attending") AS rsvp_count,
+               (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id AND r.user_id = ? AND r.status = "attending") AS user_rsvped
         FROM events e
         JOIN clubs c ON e.club_id = c.id
         LEFT JOIN venues v ON e.venue_id = v.id
         LEFT JOIN users u ON e.created_by = u.id
         WHERE 1=1';
-$params = [];
+$params = [$current_user_id];
 
 // Regular visitors only see approved events; admin and club heads can view all to manage them
 if (!$is_admin && !$is_club_head) {
@@ -165,10 +169,23 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php endif; ?>
                 </p>
 
+                <p class="rsvp-status-line">
+                    <strong>Attendance:</strong>
+                    <span class="rsvp-counter" id="rsvp-count-<?php echo (int)$evt['id']; ?>"><?php echo (int)$evt['rsvp_count']; ?></span> Students Registered
+                </p>
+
                 <p><?php echo nl2br(e(mb_strimwidth($evt['description'] ?? '', 0, 150, '...'))); ?></p>
 
                 <div class="card-actions">
                     <a href="event-detail.php?id=<?php echo (int)$evt['id']; ?>" class="btn btn-sm btn-outline">View Details</a>
+
+                    <?php if (is_logged_in() && $evt['status'] === 'approved'): ?>
+                        <button type="button" class="btn btn-sm <?php echo (int)$evt['user_rsvped'] > 0 ? 'btn-success' : 'btn-outline'; ?> btn-rsvp" data-event-id="<?php echo (int)$evt['id']; ?>">
+                            <?php echo (int)$evt['user_rsvped'] > 0 ? 'Attending ✓ (Cancel)' : 'RSVP / Attend'; ?>
+                        </button>
+                    <?php elseif (!is_logged_in()): ?>
+                        <a href="login.php" class="btn btn-sm btn-outline">Log in to RSVP</a>
+                    <?php endif; ?>
 
                     <?php if ($can_edit): ?>
                         <a href="event-form.php?id=<?php echo (int)$evt['id']; ?>" class="btn btn-sm btn-outline">Edit</a>

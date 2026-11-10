@@ -19,6 +19,8 @@ if (!isset($base_url)) {
 
 <!-- Phase 3: Client-side Interactive JavaScript -->
 <script src="<?php echo e($base_url); ?>assets/js/main.js" defer></script>
+<!-- Phase 8: AJAX Live Features & Asynchronous UI Engine -->
+<script src="<?php echo e($base_url); ?>assets/js/ajax.js" defer></script>
 
 </body>
 </html>
