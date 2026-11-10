@@ -1,7 +1,7 @@
 <?php
 /**
  * ClubHub - Events Directory Page
- * Phase 2: Styled with design system, event filter, and event cards grid.
+ * Phase 3: Instant client-side search and category filtering.
  */
 
 $page_title = 'Campus Events';
@@ -18,22 +18,17 @@ require_once __DIR__ . '/../includes/header.php';
     <form class="filter-form" action="events.php" method="GET">
         <p class="form-group">
             <label class="form-label" for="event_search">Search Event:</label>
-            <input class="form-control" type="text" id="event_search" name="event_search" placeholder="e.g. Hackathon, Debate, Concert">
+            <input class="form-control" type="text" id="event_search" name="event_search" placeholder="Type event name or keyword...">
         </p>
         <p class="form-group">
-            <label class="form-label" for="event_date">Date:</label>
-            <input class="form-control" type="date" id="event_date" name="event_date">
-        </p>
-        <p class="form-group">
-            <label class="form-label" for="event_club">Organizing Club:</label>
-            <select class="form-control" id="event_club" name="event_club">
-                <option value="">All Clubs</option>
-                <option value="coding">Coding Club</option>
-                <option value="robotics">Robotics & IoT Society</option>
-                <option value="cultural">Cultural & Arts Society</option>
-                <option value="literary">Literary & Debating Society</option>
-                <option value="sports">Sports & Athletics Club</option>
-                <option value="media">Photography & Media Club</option>
+            <label class="form-label" for="event_category">Category:</label>
+            <select class="form-control" id="event_category" name="event_category">
+                <option value="">All Categories</option>
+                <option value="technical">Technical</option>
+                <option value="cultural">Cultural</option>
+                <option value="literary">Literary</option>
+                <option value="sports">Sports</option>
+                <option value="media">Media & Creative</option>
             </select>
         </p>
         <p class="form-actions">
@@ -47,9 +42,10 @@ require_once __DIR__ . '/../includes/header.php';
     <h2>Scheduled Events</h2>
 
     <!-- Sample Event 1 -->
-    <article class="card event-card">
+    <article class="card event-card" data-category="technical">
         <h3>HackStart 2026: 24-Hour Code Sprint</h3>
         <p><strong>Organized By:</strong> Coding Club</p>
+        <p><strong>Category:</strong> Technical</p>
         <p>
             <strong>Date:</strong> <time datetime="2026-11-20">November 20, 2026</time> | 
             <strong>Time:</strong> 09:00 AM - 09:00 PM
@@ -61,9 +57,10 @@ require_once __DIR__ . '/../includes/header.php';
     </article>
 
     <!-- Sample Event 2 -->
-    <article class="card event-card">
+    <article class="card event-card" data-category="literary">
         <h3>National Youth Parliamentary Debate</h3>
         <p><strong>Organized By:</strong> Literary & Debating Society</p>
+        <p><strong>Category:</strong> Literary</p>
         <p>
             <strong>Date:</strong> <time datetime="2026-11-24">November 24, 2026</time> | 
             <strong>Time:</strong> 10:00 AM - 04:00 PM
@@ -75,9 +72,10 @@ require_once __DIR__ . '/../includes/header.php';
     </article>
 
     <!-- Sample Event 3 -->
-    <article class="card event-card">
+    <article class="card event-card" data-category="cultural">
         <h3>Acoustic Under the Stars: Live Music Fest</h3>
         <p><strong>Organized By:</strong> Cultural & Arts Society</p>
+        <p><strong>Category:</strong> Cultural</p>
         <p>
             <strong>Date:</strong> <time datetime="2026-11-28">November 28, 2026</time> | 
             <strong>Time:</strong> 05:30 PM - 08:30 PM
@@ -89,9 +87,10 @@ require_once __DIR__ . '/../includes/header.php';
     </article>
 
     <!-- Sample Event 4 -->
-    <article class="card event-card">
+    <article class="card event-card" data-category="technical">
         <h3>Autonomous Drone Building Bootcamp</h3>
         <p><strong>Organized By:</strong> Robotics & IoT Society</p>
+        <p><strong>Category:</strong> Technical</p>
         <p>
             <strong>Date:</strong> <time datetime="2026-12-02">December 2, 2026</time> | 
             <strong>Time:</strong> 01:00 PM - 05:00 PM
@@ -103,9 +102,10 @@ require_once __DIR__ . '/../includes/header.php';
     </article>
 
     <!-- Sample Event 5 -->
-    <article class="card event-card">
+    <article class="card event-card" data-category="sports">
         <h3>Inter-Department Football Championship</h3>
         <p><strong>Organized By:</strong> Sports & Athletics Club</p>
+        <p><strong>Category:</strong> Sports</p>
         <p>
             <strong>Date:</strong> <time datetime="2026-12-08">December 8, 2026</time> | 
             <strong>Time:</strong> 03:30 PM - 06:30 PM
@@ -117,9 +117,10 @@ require_once __DIR__ . '/../includes/header.php';
     </article>
 
     <!-- Sample Event 6 -->
-    <article class="card event-card">
+    <article class="card event-card" data-category="media">
         <h3>Campus Lens: Annual Photography Exhibition</h3>
         <p><strong>Organized By:</strong> Photography & Media Club</p>
+        <p><strong>Category:</strong> Media & Creative</p>
         <p>
             <strong>Date:</strong> <time datetime="2026-12-12">December 12, 2026</time> | 
             <strong>Time:</strong> 11:00 AM - 05:00 PM

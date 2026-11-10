@@ -38,9 +38,17 @@ $current_page = basename($_SERVER['PHP_SELF'] ?? '');
                 <span>ClubHub</span>
             </a>
         </strong>
-        <span> - College Clubs Operations Hub</span>
+        <span class="brand-tagline"> - College Clubs Operations Hub</span>
     </p>
-    <nav class="site-navbar" aria-label="Main Navigation">
+
+    <!-- Mobile Hamburger Toggle Button -->
+    <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navbarMenu">
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+    </button>
+
+    <nav class="site-navbar" id="navbarMenu" aria-label="Main Navigation">
         <ul class="navbar-nav">
             <li class="nav-item"><a href="<?php echo e($base_url); ?>index.php" class="nav-link <?php echo $current_page === 'index.php' ? 'active' : ''; ?>">Home</a></li>
             <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/clubs.php" class="nav-link <?php echo $current_page === 'clubs.php' ? 'active' : ''; ?>">Clubs</a></li>
