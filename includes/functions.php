@@ -1,13 +1,18 @@
 <?php
 /**
- * ClubHub - Core Utility Functions
- * Contains session helpers, CSRF protection, sanitization, and access control.
+ * ClubHub - Core Utility & Helper Functions
+ * Phase 5: Database & PHP Foundation Helpers
+ * Includes sanitization, email validation, redirection, flash messages,
+ * error logging to logs/error.log, and custom exception handling.
  */
 
-// Start session if not already active
+// Disable raw PHP error display to visitors for security and compliance
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
+// Ensure local sessions directory is writable
 if (session_status() === PHP_SESSION_NONE) {
     $save_path = session_save_path();
-    // If default session path is not writable (e.g. in certain CLI/restricted environments), use a local directory
     if (!empty($save_path) && !@is_writable($save_path)) {
         $local_sessions = __DIR__ . '/../uploads/sessions';
         if (!is_dir($local_sessions)) {
@@ -21,132 +26,150 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 /**
- * Escapes HTML output safely to prevent Cross-Site Scripting (XSS).
+ * Global exception handler: catches all uncaught exceptions,
+ * logs the details, and displays the friendly custom error page.
+ */
+set_exception_handler(function ($exception) {
+    log_error($exception->getMessage(), [
+        'file'  => $exception->getFile(),
+        'line'  => $exception->getLine(),
+        'trace' => $exception->getTraceAsString(),
+    ]);
+    render_custom_error_page();
+});
+
+/**
+ * Global error handler: catches PHP runtime errors and logs them.
+ */
+set_error_handler(function ($severity, $message, $file, $line) {
+    if (!(error_reporting() & $severity)) {
+        return false;
+    }
+    log_error($message, [
+        'severity' => $severity,
+        'file'     => $file,
+        'line'     => $line,
+    ]);
+
+    // For fatal-level errors, show friendly error page
+    if ($severity === E_USER_ERROR || $severity === E_RECOVERABLE_ERROR) {
+        render_custom_error_page();
+    }
+    return true;
+});
+
+/**
+ * Displays a friendly user error page without raw PHP errors or stack traces.
+ */
+function render_custom_error_page() {
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+    // Determine relative base url
+    $script_path = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? $_SERVER['PHP_SELF'] ?? '');
+    $base_url = preg_match('#(^|/)pages/#i', $script_path) ? '../' : './';
+    
+    // Redirect or render error template
+    $error_page = __DIR__ . '/../pages/error.php';
+    if (file_exists($error_page)) {
+        include $error_page;
+    } else {
+        echo "<!DOCTYPE html><html lang='en'><head><title>System Error - ClubHub</title></head><body>";
+        echo "<h1>Oops! Something went wrong</h1><p>An unexpected error occurred. The incident has been recorded.</p>";
+        echo "<p><a href='{$base_url}index.php'>Return to Home</a></p></body></html>";
+    }
+    exit;
+}
+
+/**
+ * Logs an error message with contextual details to logs/error.log.
  *
- * @param mixed $data The string or data to escape.
+ * @param string $message The error message to record.
+ * @param array $context Optional associative array with extra details (file, line, trace).
+ */
+function log_error($message, $context = []) {
+    $log_dir = __DIR__ . '/../logs';
+    if (!is_dir($log_dir)) {
+        @mkdir($log_dir, 0777, true);
+    }
+
+    $log_file = $log_dir . '/error.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $script = $_SERVER['SCRIPT_NAME'] ?? 'CLI';
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+    $context_str = '';
+    if (!empty($context)) {
+        $context_str = ' | Context: ' . json_encode($context, JSON_UNESCAPED_SLASHES);
+    }
+
+    $log_line = "[{$timestamp}] [{$ip}] [{$script}] {$message}{$context_str}" . PHP_EOL;
+    @file_put_contents($log_file, $log_line, FILE_APPEND | LOCK_EX);
+}
+
+/**
+ * Sanitizes input and escapes HTML output to prevent XSS.
+ *
+ * @param mixed $data The input string or array to sanitize.
+ * @return mixed Sanitized string or array.
+ */
+function sanitize($data) {
+    if (is_array($data)) {
+        return array_map('sanitize', $data);
+    }
+    return htmlspecialchars(trim((string)$data), ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Short alias for sanitize() to quickly escape output in templates.
+ *
+ * @param mixed $data
  * @return string Safe HTML string.
  */
 function e($data) {
-    return htmlspecialchars((string)$data, ENT_QUOTES, 'UTF-8');
+    return sanitize($data);
 }
 
 /**
- * Generates a CSRF token for the session if not already set.
+ * Validates an email address format.
  *
- * @return string CSRF token string.
- */
-function generate_csrf_token() {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
-
-/**
- * Outputs a hidden input field containing the current CSRF token.
- * Every POST form must include this.
- *
- * @return string HTML hidden input tag.
- */
-function csrf_field() {
-    $token = generate_csrf_token();
-    return '<input type="hidden" name="csrf_token" value="' . e($token) . '">';
-}
-
-/**
- * Validates a submitted CSRF token using constant-time comparison.
- *
- * @param string|null $token Submitted token from POST request.
+ * @param string $email
  * @return bool True if valid, false otherwise.
  */
-function verify_csrf_token($token) {
-    if (empty($_SESSION['csrf_token']) || empty($token)) {
+function is_valid_email($email) {
+    if (empty($email) || !is_string($email)) {
         return false;
     }
-    return hash_equals($_SESSION['csrf_token'], (string)$token);
+    return filter_var(trim($email), FILTER_VALIDATE_EMAIL) !== false;
 }
 
 /**
- * Checks whether a user is currently logged in.
+ * Redirects the browser to another page and halts execution.
  *
- * @return bool
+ * @param string $url Target redirect URL.
  */
-function is_logged_in() {
-    return !empty($_SESSION['user']) && !empty($_SESSION['user']['id']);
+function redirect($url) {
+    header("Location: {$url}");
+    exit;
 }
 
 /**
- * Returns the currently authenticated user's session data.
- *
- * @return array|null User associative array or null if not logged in.
- */
-function current_user() {
-    return $_SESSION['user'] ?? null;
-}
-
-/**
- * Checks if the logged-in user possesses a specific role or one of multiple roles.
- *
- * @param string|array $roles Single role string or array of allowed roles.
- * @return bool
- */
-function has_role($roles) {
-    if (!is_logged_in()) {
-        return false;
-    }
-    $user_role = $_SESSION['user']['role'] ?? '';
-    if (is_array($roles)) {
-        return in_array($user_role, $roles, true);
-    }
-    return $user_role === $roles;
-}
-
-/**
- * Enforces authentication. Redirects to login page if user is a guest.
- *
- * @param string $redirect_to Optional URL to redirect after login.
- */
-function require_login($redirect_to = '') {
-    if (!is_logged_in()) {
-        set_flash('danger', 'You must log in to view this page.');
-        $url = '../pages/login.php';
-        if (!empty($redirect_to)) {
-            $url .= '?redirect=' . urlencode($redirect_to);
-        }
-        redirect($url);
-    }
-}
-
-/**
- * Enforces role-based authorization.
- *
- * @param string|array $allowed_roles Role(s) permitted to access the page.
- */
-function require_role($allowed_roles) {
-    require_login();
-    if (!has_role($allowed_roles)) {
-        set_flash('danger', 'Access denied. You do not have permission to view that section.');
-        redirect('../pages/dashboard.php');
-    }
-}
-
-/**
- * Sets a flash message to be displayed on the next rendered page.
+ * Sets a flash message to display on the next rendered page.
  *
  * @param string $type Bootstrap/CSS alert type: 'success', 'danger', 'warning', 'info'
  * @param string $message The text message to display.
  */
 function set_flash($type, $message) {
     $_SESSION['flash'] = [
-        'type' => $type,
-        'message' => $message,
+        'type'    => sanitize($type),
+        'message' => sanitize($message),
     ];
 }
 
 /**
- * Retrieves and clears the current flash message from session.
+ * Retrieves and clears the active flash message from session.
  *
- * @return array|null Array with 'type' and 'message', or null if none.
+ * @return array|null Associative array with 'type' and 'message', or null if empty.
  */
 function get_flash() {
     if (!empty($_SESSION['flash'])) {
@@ -158,40 +181,94 @@ function get_flash() {
 }
 
 /**
- * Redirects the browser to a given location and terminates execution.
+ * Generates or retrieves the current CSRF token from session.
  *
- * @param string $url Target URL.
+ * @return string 64-character hexadecimal token.
  */
-function redirect($url) {
-    header("Location: {$url}");
-    exit;
+function generate_csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
 }
 
 /**
- * Formats a MySQL date/time string into a human-readable format.
+ * Renders a hidden CSRF token input tag for POST forms.
  *
- * @param string $datetime_str
- * @param string $format
- * @return string
+ * @return string HTML hidden input tag.
  */
-function format_date($datetime_str, $format = 'M d, Y') {
-    if (empty($datetime_str)) {
-        return 'N/A';
-    }
-    $timestamp = strtotime($datetime_str);
-    return $timestamp ? date($format, $timestamp) : 'N/A';
+function csrf_field() {
+    $token = generate_csrf_token();
+    return '<input type="hidden" name="csrf_token" value="' . e($token) . '">';
 }
 
 /**
- * Formats time string (HH:MM:SS) to standard 12-hour format with AM/PM.
+ * Validates a submitted CSRF token using constant-time comparison.
  *
- * @param string $time_str
- * @return string
+ * @param string|null $token
+ * @return bool True if valid, false otherwise.
  */
-function format_time($time_str) {
-    if (empty($time_str)) {
-        return '';
+function verify_csrf_token($token) {
+    if (empty($_SESSION['csrf_token']) || empty($token)) {
+        return false;
     }
-    $timestamp = strtotime("1970-01-01 {$time_str}");
-    return $timestamp ? date('g:i A', $timestamp) : $time_str;
+    return hash_equals($_SESSION['csrf_token'], (string)$token);
+}
+
+/**
+ * Checks whether an authenticated user session is active.
+ *
+ * @return bool
+ */
+function is_logged_in() {
+    return !empty($_SESSION['user']) && !empty($_SESSION['user']['id']);
+}
+
+/**
+ * Returns current user's session data.
+ *
+ * @return array|null User record array or null.
+ */
+function current_user() {
+    return $_SESSION['user'] ?? null;
+}
+
+/**
+ * Checks if current user matches a given role or array of roles.
+ *
+ * @param string|array $roles Single role or list of allowed roles.
+ * @return bool
+ */
+function has_role($roles) {
+    if (!is_logged_in()) {
+        return false;
+    }
+    $role = $_SESSION['user']['role'] ?? '';
+    if (is_array($roles)) {
+        return in_array($role, $roles, true);
+    }
+    return $role === $roles;
+}
+
+/**
+ * Enforces user authentication; redirects guests to login page.
+ */
+function require_login() {
+    if (!is_logged_in()) {
+        set_flash('danger', 'Please log in to access this page.');
+        redirect('../pages/login.php');
+    }
+}
+
+/**
+ * Enforces role-based authorization.
+ *
+ * @param string|array $allowed_roles
+ */
+function require_role($allowed_roles) {
+    require_login();
+    if (!has_role($allowed_roles)) {
+        set_flash('danger', 'Access denied. You do not have permission for that section.');
+        redirect('../pages/login.php');
+    }
 }
