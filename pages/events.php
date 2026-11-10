@@ -1,32 +1,32 @@
 <?php
 /**
  * ClubHub - Events Directory Page
- * Phase 1: Static semantic HTML5 structure with 6 sample events.
+ * Phase 2: Styled with design system, event filter, and event cards grid.
  */
 
 $page_title = 'Campus Events';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<section>
+<section class="page-header">
     <h1>Upcoming College Events</h1>
     <p>Browse schedule, venue information, and registration details for all sanctioned club events and campus workshops.</p>
 </section>
 
-<section>
+<section class="filter-section">
     <h2>Search & Filter Events</h2>
-    <form action="events.php" method="GET">
-        <p>
-            <label for="event_search">Search Event:</label>
-            <input type="text" id="event_search" name="event_search" placeholder="e.g. Hackathon, Debate, Concert">
+    <form class="filter-form" action="events.php" method="GET">
+        <p class="form-group">
+            <label class="form-label" for="event_search">Search Event:</label>
+            <input class="form-control" type="text" id="event_search" name="event_search" placeholder="e.g. Hackathon, Debate, Concert">
         </p>
-        <p>
-            <label for="event_date">Date:</label>
-            <input type="date" id="event_date" name="event_date">
+        <p class="form-group">
+            <label class="form-label" for="event_date">Date:</label>
+            <input class="form-control" type="date" id="event_date" name="event_date">
         </p>
-        <p>
-            <label for="event_club">Organizing Club:</label>
-            <select id="event_club" name="event_club">
+        <p class="form-group">
+            <label class="form-label" for="event_club">Organizing Club:</label>
+            <select class="form-control" id="event_club" name="event_club">
                 <option value="">All Clubs</option>
                 <option value="coding">Coding Club</option>
                 <option value="robotics">Robotics & IoT Society</option>
@@ -36,18 +36,18 @@ require_once __DIR__ . '/../includes/header.php';
                 <option value="media">Photography & Media Club</option>
             </select>
         </p>
-        <p>
-            <button type="submit">Filter Schedule</button>
-            <button type="reset">Clear</button>
+        <p class="form-actions">
+            <button type="submit" class="btn btn-primary">Filter Schedule</button>
+            <button type="reset" class="btn btn-secondary">Clear</button>
         </p>
     </form>
 </section>
 
-<section>
+<section class="events-grid card-grid">
     <h2>Scheduled Events</h2>
 
     <!-- Sample Event 1 -->
-    <article>
+    <article class="card event-card">
         <h3>HackStart 2026: 24-Hour Code Sprint</h3>
         <p><strong>Organized By:</strong> Coding Club</p>
         <p>
@@ -57,11 +57,11 @@ require_once __DIR__ . '/../includes/header.php';
         <p><strong>Venue:</strong> Computer Lab 3 (Capacity: 60)</p>
         <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
         <p>Annual inter-department hackathon challenging teams to develop innovative open source solutions for campus problems.</p>
-        <p><a href="login.php">Log in to Register Team</a></p>
+        <p><a href="login.php" class="btn-outline">Log in to Register Team</a></p>
     </article>
 
     <!-- Sample Event 2 -->
-    <article>
+    <article class="card event-card">
         <h3>National Youth Parliamentary Debate</h3>
         <p><strong>Organized By:</strong> Literary & Debating Society</p>
         <p>
@@ -71,11 +71,11 @@ require_once __DIR__ . '/../includes/header.php';
         <p><strong>Venue:</strong> Seminar Hall 1 (Capacity: 120)</p>
         <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
         <p>Three rounds of British Parliamentary debate on contemporary economic policy, artificial intelligence ethics, and global trade.</p>
-        <p><a href="login.php">Log in to Register as Speaker/Audience</a></p>
+        <p><a href="login.php" class="btn-outline">Log in to Register as Speaker/Audience</a></p>
     </article>
 
     <!-- Sample Event 3 -->
-    <article>
+    <article class="card event-card">
         <h3>Acoustic Under the Stars: Live Music Fest</h3>
         <p><strong>Organized By:</strong> Cultural & Arts Society</p>
         <p>
@@ -85,11 +85,11 @@ require_once __DIR__ . '/../includes/header.php';
         <p><strong>Venue:</strong> Open Air Theatre (Capacity: 800)</p>
         <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
         <p>An open-air musical evening featuring acoustic sets from student guitarists, vocal ensembles, and percussionists.</p>
-        <p><a href="login.php">Log in for Event Pass</a></p>
+        <p><a href="login.php" class="btn-outline">Log in for Event Pass</a></p>
     </article>
 
     <!-- Sample Event 4 -->
-    <article>
+    <article class="card event-card">
         <h3>Autonomous Drone Building Bootcamp</h3>
         <p><strong>Organized By:</strong> Robotics & IoT Society</p>
         <p>
@@ -99,11 +99,11 @@ require_once __DIR__ . '/../includes/header.php';
         <p><strong>Venue:</strong> Electronics Hardware Lab (Capacity: 45)</p>
         <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
         <p>A hands-on workshop covering flight controllers, ESC calibration, brushless motors, and radio transmitter programming.</p>
-        <p><a href="login.php">Log in to Reserve Kit</a></p>
+        <p><a href="login.php" class="btn-outline">Log in to Reserve Kit</a></p>
     </article>
 
     <!-- Sample Event 5 -->
-    <article>
+    <article class="card event-card">
         <h3>Inter-Department Football Championship</h3>
         <p><strong>Organized By:</strong> Sports & Athletics Club</p>
         <p>
@@ -113,11 +113,11 @@ require_once __DIR__ . '/../includes/header.php';
         <p><strong>Venue:</strong> Main Sports Ground (Capacity: 500)</p>
         <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
         <p>Quarter-final knockout rounds between the Computer Science, Mechanical, and Electronics departmental squads.</p>
-        <p><a href="login.php">Log in for Match Fixtures</a></p>
+        <p><a href="login.php" class="btn-outline">Log in for Match Fixtures</a></p>
     </article>
 
     <!-- Sample Event 6 -->
-    <article>
+    <article class="card event-card">
         <h3>Campus Lens: Annual Photography Exhibition</h3>
         <p><strong>Organized By:</strong> Photography & Media Club</p>
         <p>
@@ -127,11 +127,10 @@ require_once __DIR__ . '/../includes/header.php';
         <p><strong>Venue:</strong> Main Auditorium Foyer (Capacity: 200)</p>
         <p><strong>Status:</strong> Approved by Faculty Coordinator</p>
         <p>Showcase of student fine-art photographs, architectural street photography, and macro nature prints with visitor voting.</p>
-        <p><a href="login.php">Log in to Submit Photo Entry</a></p>
+        <p><a href="login.php" class="btn-outline">Log in to Submit Photo Entry</a></p>
     </article>
 </section>
 
 <?php
 require_once __DIR__ . '/../includes/footer.php';
 ?>
-

@@ -1,19 +1,19 @@
 <?php
 /**
  * ClubHub - About Page
- * Phase 1: Static semantic HTML5 structure describing the system.
+ * Phase 2: Styled with design system, card grids, and role cards.
  */
 
 $page_title = 'About ClubHub';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<section>
+<section class="page-header">
     <h1>About ClubHub</h1>
     <p>ClubHub is a centralized operations platform developed as a collegiate web development lab project to modernize how extracurricular student clubs, campus venues, and campus events are coordinated.</p>
 </section>
 
-<section>
+<section class="card">
     <h2>Platform Objectives</h2>
     <p>Managing college clubs often involves fragmented spreadsheets, paper approval trails, double-booked auditoriums, and disconnected email threads. ClubHub solves these operational challenges by providing:</p>
     <ul>
@@ -25,27 +25,27 @@ require_once __DIR__ . '/../includes/header.php';
     </ul>
 </section>
 
-<section>
+<section class="roles-grid card-grid">
     <h2>User Roles & Access Levels</h2>
-    <article>
+    <article class="card role-card">
         <h3>Faculty Coordinator (Admin)</h3>
         <p>Oversees all college societies, approves or rejects event proposals, reviews budget requests, and manages venue allocations.</p>
     </article>
-    <article>
+    <article class="card role-card">
         <h3>Club Head (Student Leader)</h3>
         <p>Manages club roster, reviews membership applications, drafts event proposals, reserves venues, and logs club expenditure.</p>
     </article>
-    <article>
+    <article class="card role-card">
         <h3>Club Member (Enrolled Student)</h3>
         <p>Joins approved clubs, registers for campus events, views club announcements, and participates in activities.</p>
     </article>
-    <article>
+    <article class="card role-card">
         <h3>Guest (Campus Visitor / Prospective Student)</h3>
         <p>Browses public club profiles, checks upcoming open events, and views campus-wide announcements.</p>
     </article>
 </section>
 
-<section>
+<section class="card">
     <h2>Technical Specifications</h2>
     <p>This project is implemented strictly using foundational web engineering standards without heavy third-party PHP frameworks:</p>
     <ul>
@@ -59,4 +59,3 @@ require_once __DIR__ . '/../includes/header.php';
 <?php
 require_once __DIR__ . '/../includes/footer.php';
 ?>
-

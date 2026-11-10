@@ -15,6 +15,9 @@ if (!isset($base_url)) {
         $base_url = './';
     }
 }
+
+// Current page filename for active navigation highlight
+$current_page = basename($_SERVER['PHP_SELF'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -22,24 +25,32 @@ if (!isset($base_url)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? e($page_title) . ' - ClubHub' : 'ClubHub - College Clubs Operations Hub'; ?></title>
-    <!-- Linked stylesheet (empty for Phase 1) -->
+    <!-- Linked stylesheet -->
     <link rel="stylesheet" href="<?php echo e($base_url); ?>assets/css/style.css">
 </head>
 <body>
 
-<header>
-    <p><strong><a href="<?php echo e($base_url); ?>index.php">ClubHub</a></strong> - College Clubs Operations Hub</p>
-    <nav aria-label="Main Navigation">
-        <ul>
-            <li><a href="<?php echo e($base_url); ?>index.php">Home</a></li>
-            <li><a href="<?php echo e($base_url); ?>pages/clubs.php">Clubs</a></li>
-            <li><a href="<?php echo e($base_url); ?>pages/events.php">Events</a></li>
-            <li><a href="<?php echo e($base_url); ?>pages/about.php">About</a></li>
-            <li><a href="<?php echo e($base_url); ?>pages/contact.php">Contact</a></li>
-            <li><a href="<?php echo e($base_url); ?>pages/login.php">Login</a></li>
-            <li><a href="<?php echo e($base_url); ?>pages/register.php">Register</a></li>
+<header class="site-header">
+    <p class="site-brand">
+        <strong>
+            <a href="<?php echo e($base_url); ?>index.php" class="brand-link">
+                <img src="<?php echo e($base_url); ?>assets/images/logo.png" alt="ClubHub Logo" class="navbar-logo">
+                <span>ClubHub</span>
+            </a>
+        </strong>
+        <span> - College Clubs Operations Hub</span>
+    </p>
+    <nav class="site-navbar" aria-label="Main Navigation">
+        <ul class="navbar-nav">
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>index.php" class="nav-link <?php echo $current_page === 'index.php' ? 'active' : ''; ?>">Home</a></li>
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/clubs.php" class="nav-link <?php echo $current_page === 'clubs.php' ? 'active' : ''; ?>">Clubs</a></li>
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/events.php" class="nav-link <?php echo $current_page === 'events.php' ? 'active' : ''; ?>">Events</a></li>
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/about.php" class="nav-link <?php echo $current_page === 'about.php' ? 'active' : ''; ?>">About</a></li>
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/contact.php" class="nav-link <?php echo $current_page === 'contact.php' ? 'active' : ''; ?>">Contact</a></li>
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/login.php" class="nav-link <?php echo $current_page === 'login.php' ? 'active' : ''; ?>">Login</a></li>
+            <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/register.php" class="nav-link <?php echo $current_page === 'register.php' ? 'active' : ''; ?>">Register</a></li>
         </ul>
     </nav>
 </header>
 
-<main>
+<main class="site-main">
