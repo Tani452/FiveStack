@@ -204,6 +204,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['action']) || $_POST
         $errors['description'] = 'Please provide a descriptive overview (at least 10 characters).';
     }
 
+    // 3b. Venue Booking Clash Detection (Server-Side Overlap Prevention)
+    if (!empty($venue_id) && $event_date !== '' && $start_time !== '' && $end_time !== '' && empty($errors['end_time'])) {
+        try {
+            $clash_sql = "
+                SELECT e.id, e.title, e.start_time, e.end_time, e.event_date,
+                       c.name AS club_name, v.name AS venue_name
+                FROM events e
+                JOIN clubs c ON e.club_id = c.id
+                JOIN venues v ON e.venue_id = v.id
+                WHERE e.venue_id = ?
+                  AND e.event_date = ?
+                  AND e.status NOT IN ('rejected', 'cancelled', 'draft')
+                  AND (e.start_time < ? AND e.end_time > ?)
+            ";
+            $clash_params = [$venue_id, $event_date, $end_time, $start_time];
+            if ($is_edit) {
+                $clash_sql .= " AND e.id != ?";
+                $clash_params[] = $id;
+            }
+            $clash_stmt = $pdo->prepare($clash_sql);
+            $clash_stmt->execute($clash_params);
+            $conflict = $clash_stmt->fetch();
+
+            if ($conflict) {
+                $c_start = date('h:i A', strtotime($conflict['start_time']));
+                $c_end = date('h:i A', strtotime($conflict['end_time']));
+                $errors['venue_id'] = "Venue Clash: {$conflict['venue_name']} is already reserved on {$conflict['event_date']} for '{$conflict['title']}' ({$conflict['club_name']}) from {$c_start} to {$c_end}. Please choose a different venue or adjust your time slot.";
+            }
+        } catch (PDOException $e) {
+            log_error('Error checking venue booking clash: ' . $e->getMessage());
+        }
+    }
+
     // 4. Save to Database
     if (empty($errors)) {
         try {
@@ -225,6 +258,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['action']) || $_POST
                 $id = (int)$pdo->lastInsertId();
                 set_flash('success', 'Event "' . $title . '" successfully created and scheduled!');
             }
+
+            // Sync confirmed venue booking in bookings table
+            try {
+                if (!empty($venue_id) && $status === 'approved') {
+                    $del_b = $pdo->prepare('DELETE FROM bookings WHERE event_id = ?');
+                    $del_b->execute([$id]);
+                    $ins_b = $pdo->prepare('INSERT INTO bookings (venue_id, event_id, booking_date, start_time, end_time, status) VALUES (?, ?, ?, ?, ?, "confirmed")');
+                    $ins_b->execute([$venue_id, $id, $event_date, $start_time, $end_time]);
+                } elseif ($status === 'rejected' || $status === 'cancelled') {
+                    $del_b = $pdo->prepare('DELETE FROM bookings WHERE event_id = ?');
+                    $del_b->execute([$id]);
+                }
+            } catch (PDOException $e) {
+                log_error('Error updating bookings record: ' . $e->getMessage());
+            }
+
             redirect('event-detail.php?id=' . $id);
         } catch (PDOException $e) {
             log_error('Database error saving event: ' . $e->getMessage());

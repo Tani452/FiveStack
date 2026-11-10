@@ -5,6 +5,9 @@
 # Uploads (ignore contents except .gitkeep)
 uploads/*
 !uploads/.gitkeep
+!uploads/receipts/
+uploads/receipts/*
+!uploads/receipts/.gitkeep
 
 # Dependencies & Build Outputs
 node_modules/

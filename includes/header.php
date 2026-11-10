@@ -62,6 +62,9 @@ $current_page = basename($_SERVER['PHP_SELF'] ?? '');
             <?php if (is_logged_in()): ?>
                 <?php $user = current_user(); ?>
                 <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/dashboard.php" class="nav-link <?php echo $current_page === 'dashboard.php' ? 'active' : ''; ?>">Dashboard</a></li>
+                <?php if (has_role(['admin', 'club_head'])): ?>
+                    <li class="nav-item"><a href="<?php echo e($base_url); ?>pages/budget.php" class="nav-link <?php echo $current_page === 'budget.php' ? 'active' : ''; ?>">Budget</a></li>
+                <?php endif; ?>
                 <li class="nav-item nav-user-info">
                     <span class="badge badge-role badge-<?php echo e($user['role']); ?>">
                         <?php echo e($user['name']); ?> (<?php echo e($user['role']); ?>)

@@ -56,6 +56,21 @@ try {
 $user = current_user();
 $is_admin = has_role('admin');
 
+// Fetch memberships for currently logged-in user
+$user_memberships = [];
+if (is_logged_in()) {
+    try {
+        $m_stmt = $pdo->prepare('SELECT club_id, status FROM club_members WHERE user_id = ?');
+        $m_stmt->execute([(int)$user['id']]);
+        $rows = $m_stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) {
+            $user_memberships[(int)$r['club_id']] = $r['status'];
+        }
+    } catch (PDOException $e) {
+        log_error('Failed to load user memberships: ' . $e->getMessage());
+    }
+}
+
 $page_title = 'Clubs Directory';
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -160,7 +175,42 @@ require_once __DIR__ . '/../includes/header.php';
 
                     <?php if (!$can_manage_club): ?>
                         <?php if (is_logged_in()): ?>
-                            <span class="badge badge-secondary">Member Application Open</span>
+                            <?php
+                            $club_id_int = (int)$club['id'];
+                            $m_status = $user_memberships[$club_id_int] ?? null;
+                            ?>
+                            <?php if ($m_status === 'approved'): ?>
+                                <span class="badge badge-success" style="align-self: center;">Active Member</span>
+                                <form action="membership-action.php" method="POST" style="display:inline; margin:0; padding:0; border:none; box-shadow:none; background:transparent;" onsubmit="return confirm('Are you sure you want to leave this club?');">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="action" value="leave">
+                                    <input type="hidden" name="club_id" value="<?php echo $club_id_int; ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline">Leave Club</button>
+                                </form>
+                            <?php elseif ($m_status === 'pending'): ?>
+                                <span class="badge badge-warning" style="align-self: center;">Application Under Review</span>
+                                <form action="membership-action.php" method="POST" style="display:inline; margin:0; padding:0; border:none; box-shadow:none; background:transparent;">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="action" value="withdraw">
+                                    <input type="hidden" name="club_id" value="<?php echo $club_id_int; ?>">
+                                    <button type="submit" class="btn btn-sm btn-secondary">Withdraw</button>
+                                </form>
+                            <?php elseif ($m_status === 'rejected'): ?>
+                                <span class="badge badge-danger" style="align-self: center;">Application Rejected</span>
+                                <form action="membership-action.php" method="POST" style="display:inline; margin:0; padding:0; border:none; box-shadow:none; background:transparent;">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="action" value="apply">
+                                    <input type="hidden" name="club_id" value="<?php echo $club_id_int; ?>">
+                                    <button type="submit" class="btn btn-sm btn-primary">Re-apply</button>
+                                </form>
+                            <?php else: ?>
+                                <form action="membership-action.php" method="POST" style="display:inline; margin:0; padding:0; border:none; box-shadow:none; background:transparent;">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="action" value="apply">
+                                    <input type="hidden" name="club_id" value="<?php echo $club_id_int; ?>">
+                                    <button type="submit" class="btn btn-sm btn-primary">+ Apply to Join</button>
+                                </form>
+                            <?php endif; ?>
                         <?php else: ?>
                             <a href="login.php" class="btn-outline">Log in to Apply for Membership</a>
                         <?php endif; ?>
