@@ -65,11 +65,12 @@ function initMobileNav() {
 function initEventsFilter() {
     const searchInput = document.getElementById('event_search');
     const categorySelect = document.getElementById('event_category') || document.getElementById('event_club');
+    const dateInput = document.getElementById('event_date');
     const eventCards = document.querySelectorAll('.event-card');
     const filterForm = document.querySelector('.filter-form');
 
     // Only run if on the events page with event cards present
-    if (!eventCards.length || (!searchInput && !categorySelect)) return;
+    if (!eventCards.length || (!searchInput && !categorySelect && !dateInput)) return;
 
     // Prevent default page reload on form submit
     if (filterForm) {
@@ -91,6 +92,9 @@ function initEventsFilter() {
     if (categorySelect) {
         categorySelect.addEventListener('change', filterEvents);
     }
+    if (dateInput) {
+        dateInput.addEventListener('change', filterEvents);
+    }
 
     // Create a container for the "No events found" feedback message if not present
     let noMatchNotice = document.getElementById('noEventsNotice');
@@ -102,24 +106,29 @@ function initEventsFilter() {
         noMatchNotice.style.display = 'none';
         noMatchNotice.innerHTML = `
             <h3>No Matching Events Found</h3>
-            <p>Try searching with a different keyword or selecting "All Categories".</p>
+            <p>Try searching with a different keyword, date, or selecting "All Categories".</p>
         `;
         eventsContainer.appendChild(noMatchNotice);
     }
 
     /**
-     * Filters event cards based on current search input and category selection.
+     * Filters event cards based on current search input, category selection, and date.
      */
     function filterEvents() {
         const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const selectedCategory = categorySelect ? categorySelect.value.toLowerCase().trim() : '';
+        const selectedDate = dateInput ? dateInput.value.trim() : '';
         let visibleCount = 0;
 
         eventCards.forEach((card) => {
-            // Get searchable content
-            const title = card.querySelector('h3')?.textContent.toLowerCase() || '';
+            // Get searchable content safely without optional chaining
+            const headingEl = card.querySelector('h3');
+            const title = headingEl ? headingEl.textContent.toLowerCase() : '';
             const desc = card.textContent.toLowerCase();
             const cardCategory = (card.getAttribute('data-category') || '').toLowerCase();
+            
+            const timeEl = card.querySelector('time');
+            const cardDate = timeEl ? (timeEl.getAttribute('datetime') || '') : '';
 
             // Check if matches keyword search
             const matchesQuery = query === '' || title.includes(query) || desc.includes(query);
@@ -129,8 +138,11 @@ function initEventsFilter() {
                                     cardCategory === selectedCategory || 
                                     desc.includes(selectedCategory);
 
-            if (matchesQuery && matchesCategory) {
-                card.style.display = 'flex';
+            // Check if matches selected date (if provided)
+            const matchesDate = selectedDate === '' || cardDate === selectedDate;
+
+            if (matchesQuery && matchesCategory && matchesDate) {
+                card.style.display = ''; // Reverts to CSS stylesheet's natural display
                 visibleCount++;
             } else {
                 card.style.display = 'none';

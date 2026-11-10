@@ -71,10 +71,10 @@ require_once __DIR__ . '/../includes/header.php';
             </select>
         </p>
 
-        <p class="form-group">
-            <label for="terms">
+        <p class="form-group form-checkbox">
+            <label for="terms" class="checkbox-label">
                 <input type="checkbox" id="terms" name="terms" value="1" required>
-                I agree to abide by college club constitution guidelines and code of conduct.
+                <span>I agree to abide by college club constitution guidelines and code of conduct.</span>
             </label>
         </p>
 

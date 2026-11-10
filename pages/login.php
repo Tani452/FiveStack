@@ -29,10 +29,10 @@ require_once __DIR__ . '/../includes/header.php';
             <input class="form-control" type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
         </p>
 
-        <p class="form-group">
-            <label for="remember">
+        <p class="form-group form-checkbox">
+            <label for="remember" class="checkbox-label">
                 <input type="checkbox" id="remember" name="remember" value="1">
-                Keep me signed in on this computer
+                <span>Keep me signed in on this computer</span>
             </label>
         </p>
 

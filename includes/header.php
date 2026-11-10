@@ -25,6 +25,9 @@ $current_page = basename($_SERVER['PHP_SELF'] ?? '');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? e($page_title) . ' - ClubHub' : 'ClubHub - College Clubs Operations Hub'; ?></title>
+    <meta name="description" content="ClubHub - College Clubs Operations Hub for student clubs, campus venues, and event coordination.">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?php echo e($base_url); ?>assets/images/favicon.png">
     <!-- Linked stylesheet -->
     <link rel="stylesheet" href="<?php echo e($base_url); ?>assets/css/style.css">
 </head>

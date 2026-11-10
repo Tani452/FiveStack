@@ -71,6 +71,11 @@
     padding: 0;
 }
 
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 html {
     font-size: 16px;
     scroll-behavior: smooth;
@@ -86,6 +91,8 @@ body {
     flex-direction: column;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 /* Headings */
@@ -205,7 +212,7 @@ header, .site-header {
     text-decoration: none;
 }
 
-.brand-logo, .navbar-logo, header p img {
+.navbar-logo, header p img {
     height: 40px;
     width: auto;
     object-fit: contain;
@@ -574,7 +581,7 @@ form {
     margin-bottom: var(--space-xl);
 }
 
-.form-card, .auth-form {
+.form-card {
     max-width: 580px;
     margin: var(--space-md) auto var(--space-xl) auto;
 }
@@ -685,10 +692,12 @@ input[type="radio"] {
     vertical-align: middle;
 }
 
+.checkbox-label,
 label:has(input[type="checkbox"]) {
     font-weight: 400;
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    gap: var(--space-xs);
     cursor: pointer;
 }
 
@@ -759,7 +768,7 @@ tr:hover td {
     justify-content: center;
 }
 
-.demo-box, .demo-accounts-section {
+.demo-box {
     background-color: var(--surface-alt);
     border-left: 4px solid var(--secondary);
     padding: var(--space-md) var(--space-lg);
@@ -767,7 +776,7 @@ tr:hover td {
     margin-top: var(--space-lg);
 }
 
-.demo-box ul, .demo-accounts-section ul {
+.demo-box ul {
     margin-bottom: 0;
 }
 
