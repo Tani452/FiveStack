@@ -75,6 +75,9 @@ $page_title = 'Campus Events';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
+<!-- Phase 9: React Event Calendar Widget Styles -->
+<link rel="stylesheet" href="<?php echo e($base_url); ?>assets/react/calendar-widget.css">
+
 <section class="page-header">
     <div class="action-bar">
         <div>
@@ -86,6 +89,9 @@ require_once __DIR__ . '/../includes/header.php';
         <?php endif; ?>
     </div>
 </section>
+
+<!-- Phase 9: React Event Calendar Widget Mount Point -->
+<div id="calendar-root"></div>
 
 <section class="filter-section">
     <h2>Search & Filter Events</h2>
@@ -204,6 +210,9 @@ require_once __DIR__ . '/../includes/header.php';
         <?php endforeach; ?>
     <?php endif; ?>
 </section>
+
+<!-- Phase 9: React Event Calendar Widget Bundle -->
+<script src="<?php echo e($base_url); ?>assets/react/calendar-widget.js" defer></script>
 
 <?php
 require_once __DIR__ . '/../includes/footer.php';

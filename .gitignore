@@ -11,6 +11,7 @@ uploads/receipts/*
 
 # Dependencies & Build Outputs
 node_modules/
+react-widget/node_modules/
 react-widget/dist/
 django-reports/venv/
 __pycache__/
