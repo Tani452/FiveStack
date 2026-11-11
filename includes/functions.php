@@ -193,6 +193,15 @@ function generate_csrf_token() {
 }
 
 /**
+ * Short alias for generate_csrf_token().
+ *
+ * @return string
+ */
+function csrf_token() {
+    return generate_csrf_token();
+}
+
+/**
  * Renders a hidden CSRF token input tag for POST forms.
  *
  * @return string HTML hidden input tag.

@@ -1,0 +1,46 @@
+# ==============================================================================
+# ClubHub - Master Apache Server Configuration
+# Phase 11: Security Hardening & Access Control
+# ==============================================================================
+
+# 1. Disable Directory Browsing (Prevents directory listing)
+Options -Indexes -MultiViews
+
+# 2. Block Direct Access to Sensitive Internal Folders
+# Direct web requests to config/, includes/, logs/, and sql/ are rejected with HTTP 403 Forbidden.
+RewriteEngine On
+RewriteRule ^(config|includes|logs|sql|\.git)(/.*)?$ - [F,L]
+
+# 3. Block Hidden Files, Environment Files, and Dotfiles
+RewriteRule "(^|/)\.(?!well-known)" - [F,L]
+
+# 4. Block Direct Access to Log Files, SQL Scripts, and Configuration Backups
+<FilesMatch "(?i)\.(log|sql|ini|env|bak|conf|cfg|md|yml|yaml|json|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Allow public package-manifest exceptions if needed (or keep strict)
+<Files "index.php">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+</Files>
+
+# 5. Security Response Headers
+<IfModule mod_headers.c>
+    # Prevent MIME-sniffing
+    Header set X-Content-Type-Options "nosniff"
+    # Prevent clickjacking
+    Header set X-Frame-Options "SAMEORIGIN"
+    # Enable XSS filtering
+    Header set X-XSS-Protection "1; mode=block"
+    # Strict Referrer policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+

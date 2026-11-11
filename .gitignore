@@ -3,9 +3,10 @@
 .env.*
 !.env.example
 
-# Uploads (ignore contents except .gitkeep)
+# Uploads (ignore contents except .gitkeep and .htaccess)
 uploads/*
 !uploads/.gitkeep
+!uploads/.htaccess
 !uploads/receipts/
 uploads/receipts/*
 !uploads/receipts/.gitkeep
@@ -19,6 +20,8 @@ __pycache__/
 *.pyc
 
 # Logs & temp files
-logs/
+logs/*
+!logs/.gitkeep
+!logs/.htaccess
 *.log
 
