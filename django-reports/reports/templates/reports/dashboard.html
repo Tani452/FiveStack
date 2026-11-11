@@ -1,0 +1,348 @@
+{% extends "reports/base.html" %}
+
+{% block title %}Executive Reports & Analytics Dashboard - ClubHub{% endblock %}
+
+{% block content %}
+<section class="dashboard-intro">
+    <div class="intro-header">
+        <div>
+            <h1>Executive Reports &amp; Analytics</h1>
+            <p>Real-time institutional metrics aggregated directly from the ClubHub MySQL database via read-only connection.</p>
+        </div>
+        <div class="intro-actions">
+            <a href="{% url 'reports:export_csv' %}" class="btn btn-primary">Download Complete CSV Report</a>
+            <button type="button" class="btn btn-secondary" onclick="window.print()">Print Report</button>
+        </div>
+    </div>
+
+    <!-- 1. KPI Metric Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <span class="kpi-label">Active Student Clubs</span>
+            <span class="kpi-value">{{ total_clubs }}</span>
+            <span class="kpi-sub">Organizing Societies</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Scheduled Events</span>
+            <span class="kpi-value">{{ total_events }}</span>
+            <span class="kpi-sub">Campus Workshops &amp; Fests</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Confirmed RSVPs</span>
+            <span class="kpi-value text-teal">{{ total_rsvps }}</span>
+            <span class="kpi-sub">Active Student Attendances</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Total Approved Budget</span>
+            <span class="kpi-value">${{ total_budget_approved|floatformat:2 }}</span>
+            <span class="kpi-sub">Sanctioned Allocations</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Total Actual Expenses</span>
+            <span class="kpi-value text-amber">${{ total_expenses_spent|floatformat:2 }}</span>
+            <span class="kpi-sub">Logged Receipts</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Net Budget Remaining</span>
+            <span class="kpi-value text-green">${{ total_budget_remaining|floatformat:2 }}</span>
+            <span class="kpi-sub">Unspent Funds</span>
+        </div>
+    </div>
+</section>
+
+<!-- 2. Visual Charts Grid -->
+<section class="charts-section">
+    <div class="charts-grid">
+        <!-- Chart 1: Events per Club -->
+        <article class="chart-card">
+            <div class="chart-header">
+                <h2>Events Organized per Club</h2>
+                <span class="chart-badge">Total vs Approved</span>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <canvas id="eventsPerClubChart"></canvas>
+            </div>
+        </article>
+
+        <!-- Chart 2: RSVPs per Event -->
+        <article class="chart-card">
+            <div class="chart-header">
+                <h2>Confirmed RSVPs per Event</h2>
+                <span class="chart-badge">Student Attendance</span>
+            </div>
+            <div class="chart-canvas-wrapper">
+                <canvas id="rsvpsPerEventChart"></canvas>
+            </div>
+        </article>
+    </div>
+
+    <!-- Chart 3: Budget Requested vs Approved vs Spent -->
+    <article class="chart-card chart-card-full">
+        <div class="chart-header">
+            <h2>Club Budget Comparison: Requested vs Approved vs Actual Spent</h2>
+            <span class="chart-badge">Financial Audit</span>
+        </div>
+        <div class="chart-canvas-wrapper" style="height: 340px;">
+            <canvas id="budgetComparisonChart"></canvas>
+        </div>
+    </article>
+</section>
+
+<!-- 3. Tabular Data Sections -->
+<section class="tables-section">
+    <!-- Table 1: Financial Analysis Table -->
+    <article class="table-card">
+        <div class="table-card-header">
+            <h3>Club Financial Breakdown: Requested vs Approved vs Spent</h3>
+            <p>Summary of budget proposals and actual verified expenses submitted by club heads.</p>
+        </div>
+        <div class="table-responsive">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Club Name</th>
+                        <th>Category</th>
+                        <th>Requested</th>
+                        <th>Approved</th>
+                        <th>Actual Spent</th>
+                        <th>Remaining</th>
+                        <th>Budget Utilization</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in budget_breakdown_list %}
+                    <tr>
+                        <td><strong>{{ item.club.name }}</strong></td>
+                        <td><span class="badge badge-cat">{{ item.club.category }}</span></td>
+                        <td>${{ item.requested|floatformat:2 }}</td>
+                        <td><strong class="text-primary">${{ item.approved|floatformat:2 }}</strong></td>
+                        <td><span class="text-amber">${{ item.spent|floatformat:2 }}</span></td>
+                        <td>
+                            {% if item.remaining >= 0 %}
+                                <span class="text-green">${{ item.remaining|floatformat:2 }}</span>
+                            {% else %}
+                                <span class="text-red">-${{ item.remaining|floatformat:2 }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: {{ item.utilization_pct }}%;"></div>
+                                <span class="progress-text">{{ item.utilization_pct }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No club budget records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <div class="tables-two-col">
+        <!-- Table 2: Events per Club Details -->
+        <article class="table-card">
+            <div class="table-card-header">
+                <h3>Events per Club Breakdown</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Club Name</th>
+                            <th>Category</th>
+                            <th>Total Events</th>
+                            <th>Approved</th>
+                            <th>Pending</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in events_per_club_list %}
+                        <tr>
+                            <td>{{ item.club.name }}</td>
+                            <td><span class="badge badge-cat">{{ item.club.category }}</span></td>
+                            <td><strong>{{ item.total_events }}</strong></td>
+                            <td><span class="badge badge-success">{{ item.approved_events }}</span></td>
+                            <td><span class="badge badge-warning">{{ item.pending_events }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <!-- Table 3: RSVPs per Event Details -->
+        <article class="table-card">
+            <div class="table-card-header">
+                <h3>RSVPs per Event Attendance</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Event Title</th>
+                            <th>Date</th>
+                            <th>Venue</th>
+                            <th>Confirmed Attending</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in rsvps_per_event_list %}
+                        <tr>
+                            <td><strong>{{ item.event.title }}</strong></td>
+                            <td>{{ item.event.event_date|date:"M j, Y" }}</td>
+                            <td>{{ item.event.venue.name|default:"TBA" }}</td>
+                            <td><span class="badge badge-primary">{{ item.attending_count }} students</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // =================================================================
+        // Chart 1: Events per Club (Grouped Bar Chart)
+        // =================================================================
+        const ctxEvents = document.getElementById('eventsPerClubChart').getContext('2d');
+        new Chart(ctxEvents, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_club_labels|safe }},
+                datasets: [
+                    {
+                        label: 'Total Scheduled',
+                        data: {{ chart_club_event_counts|safe }},
+                        backgroundColor: '#93c5fd',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Approved / Sanctioned',
+                        data: {{ chart_club_approved_counts|safe }},
+                        backgroundColor: '#1e3a8a',
+                        borderColor: '#1e3a8a',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // =================================================================
+        // Chart 2: RSVPs per Event (Horizontal/Bar Chart)
+        // =================================================================
+        const ctxRsvps = document.getElementById('rsvpsPerEventChart').getContext('2d');
+        new Chart(ctxRsvps, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_event_labels|safe }},
+                datasets: [{
+                    label: 'Confirmed Attendees',
+                    data: {{ chart_event_rsvp_counts|safe }},
+                    backgroundColor: '#0d9488',
+                    borderColor: '#0f766e',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // =================================================================
+        // Chart 3: Budget Requested vs Approved vs Spent (Multi-bar Chart)
+        // =================================================================
+        const ctxBudget = document.getElementById('budgetComparisonChart').getContext('2d');
+        new Chart(ctxBudget, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_budget_labels|safe }},
+                datasets: [
+                    {
+                        label: 'Requested ($)',
+                        data: {{ chart_budget_requested|safe }},
+                        backgroundColor: '#cbd5e1',
+                        borderColor: '#94a3b8',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Approved ($)',
+                        data: {{ chart_budget_approved|safe }},
+                        backgroundColor: '#2563eb',
+                        borderColor: '#1d4ed8',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Actual Spent ($)',
+                        data: {{ chart_budget_spent|safe }},
+                        backgroundColor: '#d97706',
+                        borderColor: '#b45309',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return '$' + value.toLocaleString(); }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
+
