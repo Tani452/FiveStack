@@ -129,6 +129,7 @@ if ($role === 'admin'):
             <a href="venue-form.php" class="btn btn-secondary">+ Add Venue</a>
             <a href="announcement-form.php" class="btn btn-secondary">📢 Post Announcement</a>
             <a href="budget.php" class="btn btn-outline">💰 Budget Hub</a>
+            <a href="manage-users.php" class="btn btn-outline">👥 Manage Users</a>
             <a href="http://localhost:8000/" target="_blank" class="btn btn-outline" style="border-color: #7c3aed; color: #6d28d9;" title="Launch Django Analytical Reports Dashboard on port 8000">📊 Django Reports</a>
         </div>
     </div>
