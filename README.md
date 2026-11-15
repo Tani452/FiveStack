@@ -138,3 +138,5 @@ ClubHub includes defense-in-depth protections documented in [`SECURITY_NOTES.md`
 ## 5. Testing & Verification
 
 A structured test matrix covering all functional, architectural, and security test cases is documented in [`TESTING.md`](TESTING.md).
+
+Deployed project link: http://clubhub.gamer.free
